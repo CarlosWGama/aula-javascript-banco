@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Javascript e banco local</title>
+</head>
+<body>
+
+	<!-- CAMPO NOME -->
+	<label for="campo-nome">Nome: </label>
+	<input type="text" id="campo-nome"/>
+	
+	<button onclick="inserirDado()">Operação</button>
+	
+	<!-- LOCAL ONDE É EXIBIDO OS DADOS INSERIDOS-->
+	<h2>Dados:</h2>
+	<div id="valores"></div>	
+
+
+	<script type="text/javascript">
+		
+		let campoResultado = document.getElementById("valores");
+
+		/*************** CRIA O BANCO **************/
+		let banco = openDatabase(
+				"aula_teste",       //Nome do banco 
+				"1.0", 				//Versão
+				"descrição",		//Descrição
+				2*1024*1024			//Tamanho do banco (2MB)
+			);
+
+		/*************** CRIA TABELA TESTE **************/
+		//tx é a transação, ou seja, a pessoa que irá executar um statement
+		banco.transaction((tx) => {
+			tx.executeSql("CREATE TABLE IF NOT EXISTS teste (id integer primary key autoincrement, nome varchar)");
+		});
+
+
+		
+		/**************** INSERE DADO NO BANCO *************/	
+		function inserirDado() {
+			let campoNome = document.getElementById("campo-nome");
+			
+			//Limpa os dados
+			campoResultado.innerHTML = "";
+			
+			banco.transaction((tx) => {	
+				//Insere
+				tx.executeSql(
+					"INSERT INTO teste(nome) VALUES (?)", //SQL
+					[campoNome.value] //Valor que irá substituir a ?
+				);
+				campoNome.value = ""; //Limpa o campo do nome
+			});
+			buscarResultados();
+
+		}
+		/********* FUNÇÃO QUE BUSCA E PREENCHE NA TELA OS DADOS SALVO NO BANCO ********/
+		function buscarResultados() {
+
+			banco.transaction((tx) => {
+				//r é a variavel que terá os resultados
+				tx.executeSql("SELECT * FROM teste", [], (tx, r) => {
+					
+					//r.rows.length retorna quantas linhas recuperou na busca
+					for (let i = 0; i < r.rows.length; i++) {
+						//r.rows.item(i) recupera a linha dad posição i
+						campoResultado.innerHTML += "<br/> " + r.rows.item(i).nome;
+					} 
+				});
+			});
+		}
+
+		//Exibe os itens assim que a página e carregada
+		buscarResultados();
+	</script>
+
+</body>
+</html>
